@@ -4,22 +4,35 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 from datetime import datetime
 
 
-from yolo_model import kassenbon_model_3
-from xmlReader import readXML_Train_Test
-from yoloOutputFormat import convert_data_into_YOLO
-from imageReader import readImages_Train_Test
-from custom_loss import *
-from custom_metrics import true_positive_caller
-from custom_callback import CustomCallback,LossAndErrorPrintingCallback
-from custom_learningrate_scheduler import CustomLearningRateScheduler,lr_schedule
+from models.yolo_model import kassenbon_model_3
+from Preprocess.xmlReader import readXML_Train_Test
+from Preprocess.yoloOutputFormat import convert_data_into_YOLO
+from Preprocess.imageReader import readImages_Train_Test
+from models.custom_loss import *
+from models.custom_metrics import true_positive_caller
+from models.custom_callback import CustomCallback,LossAndErrorPrintingCallback
+from models.custom_learningrate_scheduler import CustomLearningRateScheduler,lr_schedule
 from Preprocess.prepare_for_generator import *
 from models.custom_generator import *
+
+
+
+
+
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+if tf.test.gpu_device_name():
+    print('GPU found')
+else:
+    print("No GPU found")
+
+
 
 yolo_input = (448, 448, 3) 
 S = (50,1)
 B = 2
 C = 4
-batch_size = 4
+batch_size = 16
 classes = ['UnternehmenHauptData','BonHauptData','BonPosition','Zahlung']
 classes_dic = {'UnternehmenHauptData':0,'BonHauptData':1,'BonPosition':2,'Zahlung':3}
 
@@ -33,17 +46,17 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_
 mcp_save = ModelCheckpoint('weights_' + name +'.hdf5', save_best_only=True, monitor='loss', mode='min')
 
 
-create_train_txt(data_path='/data/train', dirname = os.path.dirname(__file__))
+create_train_txt(data_path='/data/train', dirname = os.path.dirname(__file__),b_aug_data=True)
 createAnnotationsTxt(classes=classes_dic, data_path='/data/train', dirname = os.path.dirname(__file__))
 data_set = create_dataset(data_path='/data/train',dirname = os.path.dirname(__file__))
 X_train, Y_train = createXYFromDataset(data_set)
-my_training_batch_generator = My_Custom_Generator(X_train, Y_train, batch_size,S,B,C,yoloShape)
+my_training_batch_generator = My_Custom_Generator(X_train, Y_train, batch_size,S,B,C,yolo_input)
 
 
 
 model = kassenbon_model_3(name,yolo_shape=yolo_input, S=S, B=B, C=C)
 model.compile(
-    loss=custom_loss(lambda_c=5, 
+    loss=yolo_loss(lambda_c=5, 
                                lambda_no=.5, 
                                S=S, 
                                B=B, 

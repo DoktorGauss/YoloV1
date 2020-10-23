@@ -41,11 +41,20 @@ for i in range(len(X)):
     ordinal_image.save(ordinal_image_savepath)
     ordinal_bbox[:,4:] = y[:,4:]
     create_labimg_xml(ordinal_image_savepath, ordinal_bbox,classes,x_name+'_ordinal')
+    print(x_name+'_ordinal.jpg(.xml) wurde gespeichert')
     # STEP 2 real augementating save image as {x_name}_aug_{i}.JPG or {x_name}_aug_{i}.xml
     #permute bonposition=2
     number_of_possible_permutation, candidats, iou_matrix = calculate_possible_permutation(ordinal_image, ordinal_bbox)
-    
-    permutation_images = permute_image_by_permutation_matrix(np.array(ordinal_image), ordinal_bbox,iou_matrix)
+    permutation_images, permutation_labels = permute_image_by_permutation_matrix(np.array(ordinal_image), ordinal_bbox,iou_matrix)
+
+    count = 0
+    for (perm_image, perm_label) in zip(permutation_images, permutation_labels):
+        perm_image_path = x_path + augementation_path + x_name+'_ordinal_permuted_'+ str(count)+x_type
+        perm_image_pil = Image.fromarray(perm_image)
+        perm_image_pil.save(perm_image_path)
+        create_labimg_xml(perm_image_path,perm_label,classes,x_name+'_ordinal_permuted_'+str(count))
+        print(x_name + '_ordinal_permuted_' + str(count) + '.jpg(.xml) wurde gespeichert')
+        count+=1
     # for num_of_permutation in range(1,number_of_possible_permutation):
     #     perm = np.random.permutation(candidats)
     #     perm_image = permute_image(ordinal_image, candidats, perm)

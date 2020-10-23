@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import os
 import numpy as np
 
-def create_train_txt(data_path='/data/train',  dirname = os.path.dirname(__file__)):
+def create_train_txt(data_path='/data/train',  dirname = os.path.dirname(__file__),b_aug_data=False):
       absolute_path = dirname + data_path
       with open(os.path.join(absolute_path,'train.txt'), 'w') as f:
         for filename in os.listdir(absolute_path):
@@ -14,7 +14,22 @@ def create_train_txt(data_path='/data/train',  dirname = os.path.dirname(__file_
             id = root.find('filename')
             f.write(id.text)
             f.write('\n')
+            print(fullname, '  finished')
         f.close()
+      
+      if b_aug_data:
+            aug_absolute_path = absolute_path + '/augementation'
+            with open(os.path.join(absolute_path,'train.txt'), 'a') as f:
+                  for filename in os.listdir(aug_absolute_path):
+                        if not filename.endswith('.xml'): continue
+                        fullname = os.path.join(aug_absolute_path,filename)
+                        tree = ET.parse(fullname)
+                        root = tree.getroot()
+                        id = root.find('filename')
+                        f.write('augementation/' + id.text)
+                        f.write('\n')
+                        print(fullname, ' finished')
+                  f.close()
 
 
 def createAnnotationsTxt(classes,data_path='/data/train',dirname = os.path.dirname(__file__)):
@@ -26,6 +41,7 @@ def createAnnotationsTxt(classes,data_path='/data/train',dirname = os.path.dirna
               f.write(absolute_path + '/%s.JPG' % (image_id))
               convert_annotation(image_id,f,absolute_path,classes)
               f.write('\n')
+              print(image_id, ' converted')
 
 def convert_annotation(image_id, f,dirname,classes_num):
       in_file = dirname + '/%s.xml' % (image_id)

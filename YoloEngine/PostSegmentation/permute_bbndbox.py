@@ -71,8 +71,6 @@ def permute_image_by_permutation_matrix(ordinal_image, bndBoxes, iouMatrix):
     indicies = np.arange(len(bndBoxes_class2)).reshape((len(bndBoxes_class2),1))
     bndBoxes_class2 = np.append(bndBoxes_class2, indicies, axis=1)
     bndBoxes_without_class2 = not_filter_array(bndBoxes,4,2)
-
-
     perm_images = []
     perm_labels = []
     #safe number of permutation (normal n!=n*(n-1)!   here = n*(n-1)-1 probability to repeat: 1/(n-2)!) 
@@ -87,9 +85,11 @@ def permute_image_by_permutation_matrix(ordinal_image, bndBoxes, iouMatrix):
         pil_image = Image.fromarray(perm_image)
         pil_image = pil_image.resize((ordinal_image.shape[0],ordinal_image.shape[1]))
         resized_perm_image = np.asarray(pil_image,dtype='uint8')
-        drawImageWithBndBoxes(resized_perm_image,resized_perm_bndBoxes, bndBoxes,ordinal_image)
+        #drawImageWithBndBoxes(resized_perm_image,resized_perm_bndBoxes)
+        perm_images.append(resized_perm_image)
+        perm_labels.append(resized_perm_bndBoxes)
         
-    return perm_image
+    return np.asarray(perm_images), np.asarray(perm_labels)
 
 
 def createAllBndBoxesnew(perm_bndBoxes,bndBoxes_without_class2):
@@ -99,7 +99,7 @@ def createAllBndBoxesnew(perm_bndBoxes,bndBoxes_without_class2):
         if bndBoxes_without_class2[0][4] == 0:
             return np.insert(bndBoxes_without_class2,1,perm_bndBoxes,axis=0)
         else:
-            return np.concatenate(perm_bndBoxes,bndBoxes_without_class2)
+            return np.concatenate((perm_bndBoxes,bndBoxes_without_class2))
     else:
         return perm_bndBoxes
 
@@ -176,7 +176,7 @@ def permute_image(ordinal_image, candidats, permutation):
             absolute_height_difference += (current_height_difference+current_intersaction_cands_prev) 
         # second case: fits perfect
         elif cand_ymax - cand_ymin == perm_ymax - perm_ymin:
-            ordinal_image[cand_ymin + current_intersaction_cands_prev +absolute_height_difference : cand_ymax+absolute_height_difference+current_intersaction_cands_prev,:,:] = perm_image
+            ordinal_image[ cand_ymin  + absolute_height_difference : cand_ymax+absolute_height_difference,:,:] = perm_image
             perm_new_xmin = perm_xmin
             perm_new_xmax = perm_xmax
             perm_new_ymin = cand_ymin + current_intersaction_cands_prev +absolute_height_difference 

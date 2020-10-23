@@ -16,7 +16,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, InputLayer, Dropout, Flatten, Reshape
 from tensorflow.keras.layers import MaxPooling2D, GlobalMaxPooling2D
 from tensorflow.keras.regularizers import l2
-from yolo_reshape import Yolo_Reshape
+from models.yolo_reshape import Yolo_Reshape
 from tensorflow.keras.callbacks import ModelCheckpoint
 from datetime import datetime
 

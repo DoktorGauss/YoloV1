@@ -139,7 +139,7 @@ def yolo_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,44
 
 
 def box_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,448,3)):
-    def loss(y_true, y_pred):
+    def loss_box(y_true, y_pred):
         label_class = y_true[..., :C]  # ? * S0 * S1 * C
         response_mask = y_true[..., C+B*4]  # ? * S0 * S1 
         response_mask = kb.expand_dims(response_mask)  # ? * S0 * S1 * 1
@@ -210,11 +210,11 @@ def box_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,448
         loss = box_loss
 
         return loss
-    return loss
+    return loss_box
 
 
 def confidence_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,448,3)):
-    def loss(y_true, y_pred):
+    def loss_confidence(y_true, y_pred):
         label_class = y_true[..., :C]  # ? * S0 * S1 * C
         response_mask = y_true[..., C+B*4]  # ? * S0 * S1 
         response_mask = kb.expand_dims(response_mask)  # ? * S0 * S1 * 1
@@ -285,12 +285,12 @@ def confidence_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(
         loss =  confidence_loss 
 
         return loss
-    return loss
+    return loss_confidence
 
 
 
 def class_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,448,3)):
-    def loss(y_true, y_pred):
+    def loss_class(y_true, y_pred):
         label_class = y_true[..., :C]  # ? * S0 * S1 * C
         response_mask = y_true[..., C+B*4]  # ? * S0 * S1 
         response_mask = kb.expand_dims(response_mask)  # ? * S0 * S1 * 1
@@ -361,4 +361,4 @@ def class_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,4
         loss =  class_loss 
 
         return loss
-    return loss
+    return loss_class
