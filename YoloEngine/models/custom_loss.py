@@ -138,163 +138,16 @@ def yolo_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,44
     return loss
 
 
-
-def confidence_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,448,3)):
-    def loss(y_true, y_pred):
-        label_class = y_true[..., :C]  # ? * 7 * 7 * 20
-        label_box = y_true[..., C:C+4]  # ? * 7 * 7 * 4
-        response_mask = y_true[..., C+4]  # ? * 7 * 7
-        response_mask = kb.expand_dims(response_mask)  # ? * 7 * 7 * 1
-
-        predict_class = y_pred[..., :C]  # ? * 7 * 7 * 20
-        predict_trust = y_pred[..., C:C+B]  # ? * 7 * 7 * 2
-        predict_box = y_pred[..., C+B:]  # ? * 7 * 7 * 8
-
-        _label_box = kb.reshape(label_box, [-1, S[0], S[1], 1, 4])
-        _predict_box = kb.reshape(predict_box, [-1, S[0], S[1], B, 4])
-
-        label_xy, label_wh = yolo_head(_label_box,inputShape)  # ? * 7 * 7 * 1 * 2, ? * 7 * 7 * 1 * 2
-        label_xy = kb.expand_dims(label_xy, 3)  # ? * 7 * 7 * 1 * 1 * 2
-        label_wh = kb.expand_dims(label_wh, 3)  # ? * 7 * 7 * 1 * 1 * 2
-        label_xy_min, label_xy_max = xywh2minmax(label_xy, label_wh)  # ? * 7 * 7 * 1 * 1 * 2, ? * 7 * 7 * 1 * 1 * 2
-
-        predict_xy, predict_wh = yolo_head(_predict_box,inputShape)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
-        predict_xy = kb.expand_dims(predict_xy, 4)  # ? * 7 * 7 * 2 * 1 * 2
-        predict_wh = kb.expand_dims(predict_wh, 4)  # ? * 7 * 7 * 2 * 1 * 2
-        predict_xy_min, predict_xy_max = xywh2minmax(predict_xy, predict_wh)  # ? * 7 * 7 * 2 * 1 * 2, ? * 7 * 7 * 2 * 1 * 2
-
-        iou_scores = iou(predict_xy_min, predict_xy_max, label_xy_min, label_xy_max)  # ? * 7 * 7 * 2 * 1
-        best_ious = kb.max(iou_scores, axis=4)  # ? * 7 * 7 * 2
-        best_box = kb.max(best_ious, axis=3, keepdims=True)  # ? * 7 * 7 * 1
-
-        box_mask = kb.cast(best_ious >= best_box, kb.dtype(best_ious))  # ? * 7 * 7 * 2
-
-        no_object_loss = lambda_no * (1 - box_mask * response_mask) * kb.square(0 - predict_trust)
-        object_loss = box_mask * response_mask * kb.square(1 - predict_trust)
-        confidence_loss = no_object_loss + object_loss
-        confidence_loss = kb.sum(confidence_loss)
-
-        class_loss = response_mask * kb.square(label_class - predict_class)
-        class_loss = kb.sum(class_loss)
-
-        _label_box = kb.reshape(label_box, [-1, S[0], S[1], 1, 4])
-        _predict_box = kb.reshape(predict_box, [-1, S[0], S[1], B, 4])
-
-        label_xy, label_wh = yolo_head(_label_box,inputShape)  # ? * 7 * 7 * 1 * 2, ? * 7 * 7 * 1 * 2
-        predict_xy, predict_wh = yolo_head(_predict_box,inputShape)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
-
-        box_mask = kb.expand_dims(box_mask)
-        response_mask = kb.expand_dims(response_mask)
-
-        label_x = label_xy[0] / inputShape[0]
-        label_y = label_xy[1] / inputShape[1]
-        label_xy = kb.concatenate([label_x,label_y])
-        
-        predict_x = predict_xy[0] / inputShape[0]
-        predict_y = predict_xy[1] / inputShape[1]
-        predict_xy = kb.concatenate([predict_x,predict_y])
-
-        label_w = label_wh[0] / inputShape[0]
-        label_h = label_wh[1] / inputShape[1]
-        label_wh = kb.concatenate([label_w,label_h])
-
-        predict_w = predict_wh[0] / inputShape[0]
-        predict_h = predict_wh[1] / inputShape[1]
-        predict_wh = kb.concatenate([predict_w,predict_h])
-
-
-        box_loss = lambda_c * box_mask * response_mask * kb.square(label_xy - predict_xy)
-        box_loss += lambda_c * box_mask * response_mask * kb.square((kb.sqrt(label_wh) - kb.sqrt(predict_wh)))
-        box_loss = kb.sum(box_loss)
-
-        loss = confidence_loss
-
-        return loss
-    return loss
-
-def class_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,448,3)):
-    def loss(y_true, y_pred):
-        label_class = y_true[..., :C]  # ? * 7 * 7 * 20
-        label_box = y_true[..., C:C+4]  # ? * 7 * 7 * 4
-        response_mask = y_true[..., C+4]  # ? * 7 * 7
-        response_mask = kb.expand_dims(response_mask)  # ? * 7 * 7 * 1
-
-        predict_class = y_pred[..., :C]  # ? * 7 * 7 * 20
-        predict_trust = y_pred[..., C:C+B]  # ? * 7 * 7 * 2
-        predict_box = y_pred[..., C+B:]  # ? * 7 * 7 * 8
-
-        _label_box = kb.reshape(label_box, [-1, S[0], S[1], 1, 4])
-        _predict_box = kb.reshape(predict_box, [-1, S[0], S[1], B, 4])
-
-        label_xy, label_wh = yolo_head(_label_box,inputShape)  # ? * 7 * 7 * 1 * 2, ? * 7 * 7 * 1 * 2
-        label_xy = kb.expand_dims(label_xy, 3)  # ? * 7 * 7 * 1 * 1 * 2
-        label_wh = kb.expand_dims(label_wh, 3)  # ? * 7 * 7 * 1 * 1 * 2
-        label_xy_min, label_xy_max = xywh2minmax(label_xy, label_wh)  # ? * 7 * 7 * 1 * 1 * 2, ? * 7 * 7 * 1 * 1 * 2
-
-        predict_xy, predict_wh = yolo_head(_predict_box,inputShape)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
-        predict_xy = kb.expand_dims(predict_xy, 4)  # ? * 7 * 7 * 2 * 1 * 2
-        predict_wh = kb.expand_dims(predict_wh, 4)  # ? * 7 * 7 * 2 * 1 * 2
-        predict_xy_min, predict_xy_max = xywh2minmax(predict_xy, predict_wh)  # ? * 7 * 7 * 2 * 1 * 2, ? * 7 * 7 * 2 * 1 * 2
-
-        iou_scores = iou(predict_xy_min, predict_xy_max, label_xy_min, label_xy_max)  # ? * 7 * 7 * 2 * 1
-        best_ious = kb.max(iou_scores, axis=4)  # ? * 7 * 7 * 2
-        best_box = kb.max(best_ious, axis=3, keepdims=True)  # ? * 7 * 7 * 1
-
-        box_mask = kb.cast(best_ious >= best_box, kb.dtype(best_ious))  # ? * 7 * 7 * 2
-
-        no_object_loss = lambda_no * (1 - box_mask * response_mask) * kb.square(0 - predict_trust)
-        object_loss = box_mask * response_mask * kb.square(1 - predict_trust)
-        confidence_loss = no_object_loss + object_loss
-        confidence_loss = kb.sum(confidence_loss)
-
-        class_loss = response_mask * kb.square(label_class - predict_class)
-        class_loss = kb.sum(class_loss)
-
-        _label_box = kb.reshape(label_box, [-1, S[0], S[1], 1, 4])
-        _predict_box = kb.reshape(predict_box, [-1, S[0], S[1], B, 4])
-
-        label_xy, label_wh = yolo_head(_label_box,inputShape)  # ? * 7 * 7 * 1 * 2, ? * 7 * 7 * 1 * 2
-        predict_xy, predict_wh = yolo_head(_predict_box,inputShape)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
-
-        box_mask = kb.expand_dims(box_mask)
-        response_mask = kb.expand_dims(response_mask)
-
-        label_x = label_xy[0] / inputShape[0]
-        label_y = label_xy[1] / inputShape[1]
-        label_xy = kb.concatenate([label_x,label_y])
-        
-        predict_x = predict_xy[0] / inputShape[0]
-        predict_y = predict_xy[1] / inputShape[1]
-        predict_xy = kb.concatenate([predict_x,predict_y])
-
-        label_w = label_wh[0] / inputShape[0]
-        label_h = label_wh[1] / inputShape[1]
-        label_wh = kb.concatenate([label_w,label_h])
-
-        predict_w = predict_wh[0] / inputShape[0]
-        predict_h = predict_wh[1] / inputShape[1]
-        predict_wh = kb.concatenate([predict_w,predict_h])
-
-
-        box_loss = lambda_c * box_mask * response_mask * kb.square(label_xy - predict_xy)
-        box_loss += lambda_c * box_mask * response_mask * kb.square((kb.sqrt(label_wh) - kb.sqrt(predict_wh)))
-        box_loss = kb.sum(box_loss)
-
-        loss = class_loss
-
-        return loss
-    return loss
-
 def box_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,448,3)):
     def loss(y_true, y_pred):
-        label_class = y_true[..., :C]  # ? * 7 * 7 * 20
-        label_box = y_true[..., C:C+4]  # ? * 7 * 7 * 4
-        response_mask = y_true[..., C+4]  # ? * 7 * 7
-        response_mask = kb.expand_dims(response_mask)  # ? * 7 * 7 * 1
+        label_class = y_true[..., :C]  # ? * S0 * S1 * C
+        response_mask = y_true[..., C+B*4]  # ? * S0 * S1 
+        response_mask = kb.expand_dims(response_mask)  # ? * S0 * S1 * 1
+        label_box = y_true[..., C: C+ 4]  # ? * S0 * S1 * 4
 
         predict_class = y_pred[..., :C]  # ? * 7 * 7 * 20
-        predict_trust = y_pred[..., C:C+B]  # ? * 7 * 7 * 2
-        predict_box = y_pred[..., C+B:]  # ? * 7 * 7 * 8
+        predict_trust = y_pred[..., C+B*4:]  # ? * 7 * 7 * 2
+        predict_box = y_pred[..., C:C+B*4]  # ? * 7 * 7 * 8
 
         _label_box = kb.reshape(label_box, [-1, S[0], S[1], 1, 4])
         _predict_box = kb.reshape(predict_box, [-1, S[0], S[1], B, 4])
@@ -332,21 +185,22 @@ def box_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,448
         box_mask = kb.expand_dims(box_mask)
         response_mask = kb.expand_dims(response_mask)
 
-        label_x = label_xy[0] / inputShape[0]
-        label_y = label_xy[1] / inputShape[1]
-        label_xy = kb.concatenate([label_x,label_y])
+        label_x = label_xy[...,:1] / inputShape[0]
+        label_y = label_xy[...,1:2] / inputShape[1]
+        label_xy = kb.concatenate([label_x, label_y])
+
         
-        predict_x = predict_xy[0] / inputShape[0]
-        predict_y = predict_xy[1] / inputShape[1]
-        predict_xy = kb.concatenate([predict_x,predict_y])
+        predict_x = predict_xy[...,:1] / inputShape[0]
+        predict_y = predict_xy[...,1:2] / inputShape[1]
+        predict_xy = kb.concatenate([predict_x, predict_y])
 
-        label_w = label_wh[0] / inputShape[0]
-        label_h = label_wh[1] / inputShape[1]
-        label_wh = kb.concatenate([label_w,label_h])
+        label_w = label_wh[...,:1] / inputShape[0]
+        label_h = label_wh[...,1:2] / inputShape[1]
+        label_wh = kb.concatenate([label_w, label_h])
 
-        predict_w = predict_wh[0] / inputShape[0]
-        predict_h = predict_wh[1] / inputShape[1]
-        predict_wh = kb.concatenate([predict_w,predict_h])
+        predict_w = predict_wh[...,:1] / inputShape[0]
+        predict_h = predict_wh[...,1:2] / inputShape[1]
+        predict_wh = kb.concatenate([predict_w, predict_h])
 
 
         box_loss = lambda_c * box_mask * response_mask * kb.square(label_xy - predict_xy)
@@ -354,6 +208,157 @@ def box_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,448
         box_loss = kb.sum(box_loss)
 
         loss = box_loss
+
+        return loss
+    return loss
+
+
+def confidence_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,448,3)):
+    def loss(y_true, y_pred):
+        label_class = y_true[..., :C]  # ? * S0 * S1 * C
+        response_mask = y_true[..., C+B*4]  # ? * S0 * S1 
+        response_mask = kb.expand_dims(response_mask)  # ? * S0 * S1 * 1
+        label_box = y_true[..., C: C+ 4]  # ? * S0 * S1 * 4
+
+        predict_class = y_pred[..., :C]  # ? * 7 * 7 * 20
+        predict_trust = y_pred[..., C+B*4:]  # ? * 7 * 7 * 2
+        predict_box = y_pred[..., C:C+B*4]  # ? * 7 * 7 * 8
+
+        _label_box = kb.reshape(label_box, [-1, S[0], S[1], 1, 4])
+        _predict_box = kb.reshape(predict_box, [-1, S[0], S[1], B, 4])
+
+        label_xy, label_wh = yolo_head(_label_box,inputShape)  # ? * 7 * 7 * 1 * 2, ? * 7 * 7 * 1 * 2
+        label_xy = kb.expand_dims(label_xy, 3)  # ? * 7 * 7 * 1 * 1 * 2
+        label_wh = kb.expand_dims(label_wh, 3)  # ? * 7 * 7 * 1 * 1 * 2
+        label_xy_min, label_xy_max = xywh2minmax(label_xy, label_wh)  # ? * 7 * 7 * 1 * 1 * 2, ? * 7 * 7 * 1 * 1 * 2
+
+        predict_xy, predict_wh = yolo_head(_predict_box,inputShape)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
+        predict_xy = kb.expand_dims(predict_xy, 4)  # ? * 7 * 7 * 2 * 1 * 2
+        predict_wh = kb.expand_dims(predict_wh, 4)  # ? * 7 * 7 * 2 * 1 * 2
+        predict_xy_min, predict_xy_max = xywh2minmax(predict_xy, predict_wh)  # ? * 7 * 7 * 2 * 1 * 2, ? * 7 * 7 * 2 * 1 * 2
+
+        iou_scores = iou(predict_xy_min, predict_xy_max, label_xy_min, label_xy_max)  # ? * 7 * 7 * 2 * 1
+        best_ious = kb.max(iou_scores, axis=4)  # ? * 7 * 7 * 2
+        best_box = kb.max(best_ious, axis=3, keepdims=True)  # ? * 7 * 7 * 1
+
+        box_mask = kb.cast(best_ious >= best_box, kb.dtype(best_ious))  # ? * 7 * 7 * 2
+
+        no_object_loss = lambda_no * (1 - box_mask * response_mask) * kb.square(0 - predict_trust)
+        object_loss = box_mask * response_mask * kb.square(1 - predict_trust)
+        confidence_loss = no_object_loss + object_loss
+        confidence_loss = kb.sum(confidence_loss)
+
+        class_loss = response_mask * kb.square(label_class - predict_class)
+        class_loss = kb.sum(class_loss)
+
+        _label_box = kb.reshape(label_box, [-1, S[0], S[1], 1, 4])
+        _predict_box = kb.reshape(predict_box, [-1, S[0], S[1], B, 4])
+
+        label_xy, label_wh = yolo_head(_label_box,inputShape)  # ? * 7 * 7 * 1 * 2, ? * 7 * 7 * 1 * 2
+        predict_xy, predict_wh = yolo_head(_predict_box,inputShape)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
+
+        box_mask = kb.expand_dims(box_mask)
+        response_mask = kb.expand_dims(response_mask)
+
+        label_x = label_xy[...,:1] / inputShape[0]
+        label_y = label_xy[...,1:2] / inputShape[1]
+        label_xy = kb.concatenate([label_x, label_y])
+
+        
+        predict_x = predict_xy[...,:1] / inputShape[0]
+        predict_y = predict_xy[...,1:2] / inputShape[1]
+        predict_xy = kb.concatenate([predict_x, predict_y])
+
+        label_w = label_wh[...,:1] / inputShape[0]
+        label_h = label_wh[...,1:2] / inputShape[1]
+        label_wh = kb.concatenate([label_w, label_h])
+
+        predict_w = predict_wh[...,:1] / inputShape[0]
+        predict_h = predict_wh[...,1:2] / inputShape[1]
+        predict_wh = kb.concatenate([predict_w, predict_h])
+
+
+        box_loss = lambda_c * box_mask * response_mask * kb.square(label_xy - predict_xy)
+        box_loss += lambda_c * box_mask * response_mask * kb.square((kb.sqrt(label_wh) - kb.sqrt(predict_wh)))
+        box_loss = kb.sum(box_loss)
+
+        loss =  confidence_loss 
+
+        return loss
+    return loss
+
+
+
+def class_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,448,3)):
+    def loss(y_true, y_pred):
+        label_class = y_true[..., :C]  # ? * S0 * S1 * C
+        response_mask = y_true[..., C+B*4]  # ? * S0 * S1 
+        response_mask = kb.expand_dims(response_mask)  # ? * S0 * S1 * 1
+        label_box = y_true[..., C: C+ 4]  # ? * S0 * S1 * 4
+
+        predict_class = y_pred[..., :C]  # ? * 7 * 7 * 20
+        predict_trust = y_pred[..., C+B*4:]  # ? * 7 * 7 * 2
+        predict_box = y_pred[..., C:C+B*4]  # ? * 7 * 7 * 8
+
+        _label_box = kb.reshape(label_box, [-1, S[0], S[1], 1, 4])
+        _predict_box = kb.reshape(predict_box, [-1, S[0], S[1], B, 4])
+
+        label_xy, label_wh = yolo_head(_label_box,inputShape)  # ? * 7 * 7 * 1 * 2, ? * 7 * 7 * 1 * 2
+        label_xy = kb.expand_dims(label_xy, 3)  # ? * 7 * 7 * 1 * 1 * 2
+        label_wh = kb.expand_dims(label_wh, 3)  # ? * 7 * 7 * 1 * 1 * 2
+        label_xy_min, label_xy_max = xywh2minmax(label_xy, label_wh)  # ? * 7 * 7 * 1 * 1 * 2, ? * 7 * 7 * 1 * 1 * 2
+
+        predict_xy, predict_wh = yolo_head(_predict_box,inputShape)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
+        predict_xy = kb.expand_dims(predict_xy, 4)  # ? * 7 * 7 * 2 * 1 * 2
+        predict_wh = kb.expand_dims(predict_wh, 4)  # ? * 7 * 7 * 2 * 1 * 2
+        predict_xy_min, predict_xy_max = xywh2minmax(predict_xy, predict_wh)  # ? * 7 * 7 * 2 * 1 * 2, ? * 7 * 7 * 2 * 1 * 2
+
+        iou_scores = iou(predict_xy_min, predict_xy_max, label_xy_min, label_xy_max)  # ? * 7 * 7 * 2 * 1
+        best_ious = kb.max(iou_scores, axis=4)  # ? * 7 * 7 * 2
+        best_box = kb.max(best_ious, axis=3, keepdims=True)  # ? * 7 * 7 * 1
+
+        box_mask = kb.cast(best_ious >= best_box, kb.dtype(best_ious))  # ? * 7 * 7 * 2
+
+        no_object_loss = lambda_no * (1 - box_mask * response_mask) * kb.square(0 - predict_trust)
+        object_loss = box_mask * response_mask * kb.square(1 - predict_trust)
+        confidence_loss = no_object_loss + object_loss
+        confidence_loss = kb.sum(confidence_loss)
+
+        class_loss = response_mask * kb.square(label_class - predict_class)
+        class_loss = kb.sum(class_loss)
+
+        _label_box = kb.reshape(label_box, [-1, S[0], S[1], 1, 4])
+        _predict_box = kb.reshape(predict_box, [-1, S[0], S[1], B, 4])
+
+        label_xy, label_wh = yolo_head(_label_box,inputShape)  # ? * 7 * 7 * 1 * 2, ? * 7 * 7 * 1 * 2
+        predict_xy, predict_wh = yolo_head(_predict_box,inputShape)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
+
+        box_mask = kb.expand_dims(box_mask)
+        response_mask = kb.expand_dims(response_mask)
+
+        label_x = label_xy[...,:1] / inputShape[0]
+        label_y = label_xy[...,1:2] / inputShape[1]
+        label_xy = kb.concatenate([label_x, label_y])
+
+        
+        predict_x = predict_xy[...,:1] / inputShape[0]
+        predict_y = predict_xy[...,1:2] / inputShape[1]
+        predict_xy = kb.concatenate([predict_x, predict_y])
+
+        label_w = label_wh[...,:1] / inputShape[0]
+        label_h = label_wh[...,1:2] / inputShape[1]
+        label_wh = kb.concatenate([label_w, label_h])
+
+        predict_w = predict_wh[...,:1] / inputShape[0]
+        predict_h = predict_wh[...,1:2] / inputShape[1]
+        predict_wh = kb.concatenate([predict_w, predict_h])
+
+
+        box_loss = lambda_c * box_mask * response_mask * kb.square(label_xy - predict_xy)
+        box_loss += lambda_c * box_mask * response_mask * kb.square((kb.sqrt(label_wh) - kb.sqrt(predict_wh)))
+        box_loss = kb.sum(box_loss)
+
+        loss =  class_loss 
 
         return loss
     return loss
