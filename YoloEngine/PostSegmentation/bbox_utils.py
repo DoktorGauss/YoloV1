@@ -137,7 +137,7 @@ def rotate_im(image, angle):
     # perform the actual rotation and return the image
     image = cv2.warpAffine(image, M, (nW, nH))
 
-#    image = cv2.resize(image, (w,h))
+    #image = cv2.resize(image, (w,h))
     return image
 
 def get_corners(bboxes):

@@ -8,14 +8,13 @@ import numpy as np
 
 class My_Custom_Generator(keras.utils.Sequence) :
   
-  def __init__(self, images, labels, batch_size, S=(50,1), B=2, C=4, yoloShape = (448,448,3), normalize=True) :
+  def __init__(self, images, labels, batch_size, S=(50,1), B=2, C=4, normalize=True) :
     self.images = images
     self.labels = labels
     self.batch_size = batch_size
     self.S = S
     self.B = B
     self.C = C
-    self.yoloShape = yoloShape
     self.normalize = normalize
     
     
@@ -33,7 +32,7 @@ class My_Custom_Generator(keras.utils.Sequence) :
     for i in range(0, len(batch_x)):
       img_path = batch_x[i]
       label = batch_y[i]
-      image, label_matrix = read(img_path, label, self.S, self.B, self.C, self.yoloShape, self.normalize)
+      image, label_matrix = read(img_path, label, self.S, self.B, self.C, self.normalize)
       train_image.append(image)
       train_label.append(label_matrix)
     return np.array(train_image), np.array(train_label)
@@ -48,11 +47,11 @@ def resizexy(data, imageShape=(940,1280,3),yoloShape = (448,448,3)):
     ymax = int(yScale *data[3])
     return xmin, ymin, xmax,ymax
     
-def read(image_path, label, S=(50,1), B=2, C=4, yoloShape = (448,448,3), normalize=True):
+def read(image_path, label, S=(50,1), B=2, C=4,  normalize=True):
     image = cv.imread(image_path)
     image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
     imageShape = image.shape[0:2]
-    image = cv.resize(image, (yoloShape[0], yoloShape[1]))
+    #image = cv.resize(image, (yoloShape[0], yoloShape[1]))
     image_h, image_w = image.shape[0:2]
     if normalize : image = image / 255.
 
@@ -60,7 +59,10 @@ def read(image_path, label, S=(50,1), B=2, C=4, yoloShape = (448,448,3), normali
     for l in label:
         l = l.split(',')
         l = np.array(l, dtype=np.int)
-        xmin, xmax, ymin,ymax = resizexy(l,imageShape,yoloShape)
+        xmin = int(l[0])
+        ymin = int(l[1])
+        xmax = int(l[2])
+        ymax = int(l[3])
         cls = l[4]
         x = (xmin + xmax) / 2 / image_w
         y = (ymin + ymax) / 2 / image_h

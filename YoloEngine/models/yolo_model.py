@@ -76,6 +76,58 @@ def kassenbon_model(name,yolo_shape=(448,448,3), S=(50,1), B=2, C=8 ):
     model.add(Yolo_Reshape(target_shape=(S[0],S[1],(B*5+C))))
     return model
 
+
+def blasen_model(name,yolo_shape=(448,448,3), S=(100,100), B=2, C=1 ):
+        # Ein einfaches Model 
+    model = tf.keras.models.Sequential(name=name)
+    
+    #model.add(tf.keras.layers.experimental.preprocessing.Resizing(yolo_shape[0], yolo_shape[1], interpolation='bilinear',input_shape=imageShape))
+    # Convolutional Layer #1  
+    model.add(Conv2D(filters=64, kernel_size= (5,5), strides=(1, 1), input_shape = yolo_shape, padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding = 'same'))
+
+
+    model.add(Conv2D(filters=192, kernel_size= (3, 3), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding = 'same'))
+
+    model.add(Conv2D(filters=128, kernel_size= (1, 1), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=256, kernel_size= (3, 3), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=256, kernel_size= (1, 1), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=512, kernel_size= (3, 3), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding = 'same'))
+
+    model.add(Conv2D(filters=256, kernel_size= (1, 1), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=512, kernel_size= (3, 3), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=256, kernel_size= (1, 1), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=512, kernel_size= (3, 3), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=256, kernel_size= (1, 1), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=512, kernel_size= (3, 3), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=256, kernel_size= (1, 1), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=512, kernel_size= (3, 3), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=512, kernel_size= (1, 1), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=1024, kernel_size= (3, 3), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding = 'same'))
+    
+    model.add(Conv2D(filters=512, kernel_size= (1, 1), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=1024, kernel_size= (3, 3), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=512, kernel_size= (1, 1), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=1024, kernel_size= (3, 3), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=1024, kernel_size= (3, 3), padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=1024, kernel_size= (3, 3), strides=(2, 2), padding = 'same'))
+
+    model.add(Conv2D(filters=1024, kernel_size= (3, 3), activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=1024, kernel_size= (3, 3), activation=lrelu, kernel_regularizer=l2(5e-4)))
+
+
+    # Convolutional Layer #7
+    model.add(tf.keras.layers.Flatten())
+    model.add(Dense(256))
+    model.add(Dense(2048))
+    model.add(Dropout(0.5))
+    model.add(Dense(S[0]*S[1]*(B*5+C), activation='sigmoid'))
+    model.add(Yolo_Reshape(target_shape=(S[0],S[1],(B*5+C)),B=B,C=C))
+    return model
+
 def kassenbon_model_2(name,yolo_shape=(448,448,3), S=(50,1), B=2, C=8 ):
     # Ein einfaches Model 
     model = tf.keras.models.Sequential(name=name)

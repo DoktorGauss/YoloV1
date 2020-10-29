@@ -55,8 +55,8 @@ def convert_annotation(image_id, f,dirname,classes_num):
               continue
           cls_id = classes.index(cls)
           xmlbox = obj.find('bndbox')
-          b = (int(xmlbox.find('xmin').text), int(xmlbox.find('ymin').text),
-                int(xmlbox.find('xmax').text), int(xmlbox.find('ymax').text))
+          b = (int(float(xmlbox.find('xmin').text)), int(float(xmlbox.find('ymin').text)),
+                int(float(xmlbox.find('xmax').text)), int(float(xmlbox.find('ymax').text)))
           f.write(' ' + ','.join([str(a) for a in b]) + ',' + str(cls_id))
 
   
@@ -83,7 +83,7 @@ def createXYFromDataset(data_set):
       return X,Y
 
 
-def scaleBndBoxes(bbndBox, imageShape, yoloShape):
+def scaleBndBoxes(bbndBox, imageShape, yoloShape, type=int):
       bbndBox = np.array(bbndBox)
       bbndBox_int = []
       for box in bbndBox:
@@ -98,7 +98,7 @@ def scaleBndBoxes(bbndBox, imageShape, yoloShape):
       bbndBox_int[:,1] = np.int_(bbndBox_int[:,1] * yScale)
       bbndBox_int[:,2] = np.int_(bbndBox_int[:,2] * xScale)
       bbndBox_int[:,3] = np.int_(bbndBox_int[:,3] * yScale)
-      return bbndBox_int
+      return bbndBox_int.astype(type)
             
 
 

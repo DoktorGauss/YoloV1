@@ -138,7 +138,7 @@ class RandomScale(object):
     
         
         resize_scale_x = 1 + scale_x
-        resize_scale_y = 1 + scale_y
+        resize_scale_y = 1 + scale_y    
         
         img=  cv2.resize(img, None, fx = resize_scale_x, fy = resize_scale_y)
         

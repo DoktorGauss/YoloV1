@@ -65,6 +65,7 @@ def yolo_head(feats,inputShape):
 
 def yolo_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,448,3)):
     def loss(y_true, y_pred):
+
         label_class = y_true[..., :C]  # ? * S0 * S1 * C
         response_mask = y_true[..., C+B*4]  # ? * S0 * S1 
         response_mask = kb.expand_dims(response_mask)  # ? * S0 * S1 * 1
@@ -133,7 +134,7 @@ def yolo_loss(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4, inputShape=(448,44
         box_loss = kb.sum(box_loss)
 
         loss = confidence_loss + class_loss + box_loss
-
+        print(loss)
         return loss
     return loss
 
