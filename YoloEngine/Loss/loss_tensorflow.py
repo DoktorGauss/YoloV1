@@ -65,7 +65,7 @@ def my_yolo_loss_tf(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4):
         label_class = y_true[..., :C]  # ? * S0 * S1 * C
         response_mask = y_true[..., C+B*4]  # ? * S0 * S1 
         response_mask = kb.expand_dims(response_mask)  # ? * S0 * S1 * 1
-        label_box = y_true[..., C: C+B*4]  # ? * S0 * S1 * 4
+        label_box = y_true[..., C: C+ 4]  # ? * S0 * S1 * 4
 
         predict_class = y_pred[..., :C]  # ? * 7 * 7 * 20
         predict_trust = y_pred[..., C+B*4:]  # ? * 7 * 7 * 2

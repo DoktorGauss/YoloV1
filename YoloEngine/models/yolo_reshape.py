@@ -29,9 +29,14 @@ class Yolo_Reshape(tf.keras.layers.Layer):
     idx2 = idx1 + S[0] * S[1] * B
     
     # class probabilities
-    class_probs = kb.reshape(input[:, :idx1], (kb.shape(input)[0],) + tuple([S[0], S[1], C]))
-    class_probs = kb.softmax(class_probs)
 
+    class_probs = kb.reshape(input[:, :idx1], (kb.shape(input)[0],) + tuple([S[0], S[1], C]))
+    class_probs = kb.sigmoid(class_probs)
+    class_probs = kb.softmax(class_probs)
+    #box_xy = K.sigmoid(feats[..., :2])
+    #box_wh = K.exp(feats[..., 2:4])
+    #box_confidence = K.sigmoid(feats[..., 4:5])
+    #box_class_probs = K.softmax(feats[..., 5:])
     #confidence
     confs = kb.reshape(input[:, idx1:idx2], (kb.shape(input)[0],) + tuple([S[0], S[1], B]))
     confs = kb.sigmoid(confs)
@@ -40,5 +45,6 @@ class Yolo_Reshape(tf.keras.layers.Layer):
     boxes = kb.reshape(input[:, idx2:], (kb.shape(input)[0],) + tuple([S[0], S[1], B * 4]))
     boxes = kb.sigmoid(boxes)
 
-    outputs = kb.concatenate([class_probs, confs, boxes])
+    outputs = kb.concatenate([class_probs,boxes,confs])
     return outputs
+

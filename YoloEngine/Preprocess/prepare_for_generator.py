@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import os
 import numpy as np
 
-def create_train_txt(data_path='/data/train',  dirname = os.path.dirname(__file__),b_aug_data=False):
+def create_train_txt(data_path='/data/train',  dirname = '', b_aug_data=False):
       absolute_path = dirname + data_path
       with open(os.path.join(absolute_path,'train.txt'), 'w') as f:
         for filename in os.listdir(absolute_path):
@@ -32,13 +32,13 @@ def create_train_txt(data_path='/data/train',  dirname = os.path.dirname(__file_
                   f.close()
 
 
-def createAnnotationsTxt(classes,data_path='/data/train',dirname = os.path.dirname(__file__)):
+def createAnnotationsTxt(classes,data_path='/data/train',dirname = ''):
       absolute_path = dirname + data_path
       with open(os.path.join(absolute_path,'train.txt'), 'r') as f:
         image_ids = f.read().strip().split()
       with open(os.path.join(absolute_path,'train_image_annotation.txt'), 'w') as f:
         for image_id in image_ids:
-              f.write(absolute_path + '/%s.JPG' % (image_id))
+              f.write(absolute_path + '/%s.jpg' % (image_id))
               convert_annotation(image_id,f,absolute_path,classes)
               f.write('\n')
               print(image_id, ' converted')
@@ -63,7 +63,7 @@ def convert_annotation(image_id, f,dirname,classes_num):
 
 
 
-def create_dataset(data_path='/data/train',dirname = os.path.dirname(__file__)):
+def create_dataset(data_path='/data/train',dirname = ''):
       dataset = []
       absolute_path = dirname + data_path
       with open(os.path.join(absolute_path,'train_image_annotation.txt'), 'r') as f:
@@ -81,6 +81,8 @@ def createXYFromDataset(data_set):
                 arr.append(item[i])
           Y.append(arr)
       return X,Y
+
+
 
 
 def scaleBndBoxes(bbndBox, imageShape, yoloShape, type=int):

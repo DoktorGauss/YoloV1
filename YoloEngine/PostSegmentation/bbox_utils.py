@@ -3,6 +3,8 @@ import numpy as np
 from pathlib import Path
 import xml.etree.cElementTree as ET
 from PIL import Image
+from sklearn.cluster import KMeans
+import pandas as pd
 
 def draw_rect(im, cords, color = None):
     """Draw the rectangle on the image
@@ -345,3 +347,71 @@ def create_labimg_xml(image_path, annotation_list,classes, filename):
     tree = ET.ElementTree(annotation)
     xml_file_name = image_path.parent / (image_path.name.split('.')[0]+'.xml')
     tree.write(xml_file_name)
+
+
+def iou(box, clusters):
+    '''
+    :param box:      np.array of shape (2,) containing w and h
+    :param clusters: np.array of shape (N cluster, 2) 
+    '''
+    x = np.minimum(clusters[:, 0], box[0]) 
+    y = np.minimum(clusters[:, 1], box[1])
+
+    intersection = x * y
+    box_area = box[0] * box[1]
+    cluster_area = clusters[:, 0] * clusters[:, 1]
+
+    iou_ = intersection / (box_area + cluster_area - intersection)
+
+    return iou_
+
+
+def CalculateAnchorsOfDataSet(data,n=4):
+    Y_array = []
+    for image in data:
+        for label in image:
+            Y_array.append(label)
+    df = pd.DataFrame(Y_array,columns=['xmin', 'ymin', 'xmax', 'ymax','class'])
+    df['width'] = df['xmax'] - df['xmin']
+    df['height'] = df['ymax'] - df['ymin']
+    data = np.array([df['width'].to_numpy(), df['height'].to_numpy()])
+    data = np.reshape(data,(-1,2))
+    
+    return kmeans(data,n)
+
+
+def kmeans(boxes, k, dist=np.median,seed=1):
+    """
+    Calculates k-means clustering with the Intersection over Union (IoU) metric.
+    :param boxes: numpy array of shape (r, 2), where r is the number of rows
+    :param k: number of clusters
+    :param dist: distance function
+    :return: numpy array of shape (k, 2)
+    """
+    rows = boxes.shape[0]
+
+    distances     = np.empty((rows, k)) ## N row x N cluster
+    last_clusters = np.zeros((rows,))
+
+    np.random.seed(seed)
+
+    # initialize the cluster centers to be k items
+    clusters = boxes[np.random.choice(rows, k, replace=False)]
+
+    while True:
+        # Step 1: allocate each item to the closest cluster centers
+        for icluster in range(k): # I made change to lars76's code here to make the code faster
+            distances[:,icluster] = 1 - iou(clusters[icluster], boxes)
+
+        nearest_clusters = np.argmin(distances, axis=1)
+
+        if (last_clusters == nearest_clusters).all():
+            break
+            
+        # Step 2: calculate the cluster centers as mean (or median) of all the cases in the clusters.
+        for cluster in range(k):
+            clusters[cluster] = dist(boxes[nearest_clusters == cluster], axis=0)
+
+        last_clusters = nearest_clusters
+
+    return clusters,nearest_clusters,distances
