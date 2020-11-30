@@ -83,7 +83,7 @@ def blasen_model(name,yolo_shape=(448,448,3), S=(100,100), B=2, C=1 ):
         # Ein einfaches Model 
     model = tf.keras.models.Sequential(name=name)
     
-    model.add(tf.keras.layers.experimental.preprocessing.Resizing(yolo_shape[0], yolo_shape[1], interpolation='bilinear',dtype='float64'))
+    #model.add(tf.keras.layers.experimental.preprocessing.Resizing(yolo_shape[0], yolo_shape[1], interpolation='bilinear',dtype='float64'))
     # Convolutional Layer #1  
     model.add(Conv2D(filters=64, kernel_size= (7,7), strides=(1, 1), input_shape = yolo_shape, padding = 'same', activation=lrelu, kernel_regularizer=l2(5e-4)))
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2), padding = 'same'))
@@ -118,7 +118,7 @@ def blasen_model(name,yolo_shape=(448,448,3), S=(100,100), B=2, C=1 ):
     model.add(Conv2D(filters=512, kernel_size= (3, 3), strides=(2, 2), padding = 'same'))
 
     model.add(Conv2D(filters=1024, kernel_size= (3, 3), activation=lrelu, kernel_regularizer=l2(5e-4)))
-    model.add(Conv2D(filters=1024, kernel_size= (3, 3), activation=lrelu, kernel_regularizer=l2(5e-4)))
+    model.add(Conv2D(filters=2024, kernel_size= (3, 3), activation=lrelu, kernel_regularizer=l2(5e-4)))
 
 
     # Convolutional Layer #7

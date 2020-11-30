@@ -1,12 +1,13 @@
 import tensorflow as tf
-import keras.backend as K
+import tensorflow.keras.backend as K
+import tensorflow.keras.backend as kb
+import tensorflow.keras as keras
 import numpy as np
 import os
 import xml.etree.ElementTree as ET
 import tensorflow as tf
 import copy
 import cv2
-import tensorflow.keras as keras
 
 
 def yolo_non_max_suppression(scores, boxes, classes, max_boxes = 100, iou_threshold = 0.1):
@@ -81,32 +82,32 @@ def yolo_filter_boxes(box_confidence, boxes, box_class_probs, threshold = .6):
 
 def my_yolo_head(feats,inputShape):
   # Dynamic implementation of conv dims for fully convolutional model.
-  conv_dims = K.shape(feats)[1:3]  # assuming channels last
+  conv_dims = kb.shape(feats)[1:3]  # assuming channels last
   # In YOLO the height index is the inner most iteration.
-  conv_height_index = K.arange(0, stop=conv_dims[0])
-  conv_width_index = K.arange(0, stop=conv_dims[1])
-  conv_height_index = K.tile(conv_height_index, [conv_dims[1]])
+  conv_height_index = kb.arange(0, stop=conv_dims[0])
+  conv_width_index = kb.arange(0, stop=conv_dims[1])
+  conv_height_index = kb.tile(conv_height_index, [conv_dims[1]])
 
   # TODO: Repeat_elements and tf.split doesn't support dynamic splits.
-  # conv_width_index = K.repeat_elements(conv_width_index, conv_dims[1], axis=0)
-  conv_width_index = K.tile(
-      K.expand_dims(conv_width_index, 0), [conv_dims[0], 1])
-  conv_width_index = K.flatten(K.transpose(conv_width_index))
-  conv_index = K.transpose(K.stack([conv_height_index, conv_width_index]))
-  conv_index = K.reshape(conv_index, [1, conv_dims[0], conv_dims[1], 1, 2])
-  conv_index = K.cast(conv_index, K.dtype(feats))
+  # conv_width_index = kb.repeat_elements(conv_width_index, conv_dims[1], axis=0)
+  conv_width_index = kb.tile(
+      kb.expand_dims(conv_width_index, 0), [conv_dims[0], 1])
+  conv_width_index = kb.flatten(kb.transpose(conv_width_index))
+  conv_index = kb.transpose(kb.stack([conv_height_index, conv_width_index]))
+  conv_index = kb.reshape(conv_index, [1, conv_dims[0], conv_dims[1], 1, 2])
+  conv_index = kb.cast(conv_index, kb.dtype(feats))
 
-  conv_dims = K.cast(K.reshape(conv_dims, [1, 1, 1, 1, 2]), K.dtype(feats))
+  conv_dims = kb.cast(kb.reshape(conv_dims, [1, 1, 1, 1, 2]), kb.dtype(feats))
   #box_xy = (feats[..., :2] + conv_index) / conv_dims * 448
   #box_wh = feats[..., 2:4] * 448
   
   box_x = (feats[..., :1] + conv_index[...,:1]) / conv_dims[...,:1]
   box_y = (feats[..., 1:2] + conv_index[..., 1:2]) / conv_dims[..., 1:2]
-  box_xy = K.concatenate([box_x, box_y])
+  box_xy = kb.concatenate([box_x, box_y])
 
   box_w = feats[...,2:3]
   box_h = feats[...,3:4]
-  box_wh = K.concatenate([box_w, box_h])
+  box_wh = kb.concatenate([box_w, box_h])
 
   return box_xy, box_wh   
 
@@ -115,10 +116,10 @@ def yolo_outputs(S,B,C,inputShape):
       output_class = output[..., :C]  # ? * 7 * 7 * 20
       output_trust = output[..., C+B*4:]  # ? * 7 * 7 * 2
       output_box = output[..., C:C+B*4]  # ? * 7 * 7 * 8
-      _output_box = K.reshape(output_box, [-1, S[0], S[1], B, 4])
+      _output_box = kb.reshape(output_box, [-1, S[0], S[1], B, 4])
       output_xy, output_wh = my_yolo_head(_output_box,inputShape)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
-      #output_xy = K.expand_dims(predict_xy, 4)  # ? * 7 * 7 * 2 * 1 * 2
-      #output_wh = K.expand_dims(predict_wh, 4)  # ? * 7 * 7 * 2 * 1 * 2
+      #output_xy = kb.expand_dims(predict_xy, 4)  # ? * 7 * 7 * 2 * 1 * 2
+      #output_wh = kb.expand_dims(predict_wh, 4)  # ? * 7 * 7 * 2 * 1 * 2
 
       return output_trust, output_xy, output_wh, output_class
   return yolo_output
@@ -134,7 +135,7 @@ def yolo_boxes_to_corners(box_xy, box_wh):
         box_maxes[..., 0:1]  # x_max
     ])
 
-def get_boxes(yolo_output,S,B,C,inputShape,score_threshold):
+def get_boxes(yolo_output,S,B,inputShape,score_threshold):
   _yolo_outputs = yolo_outputs(S,B,C,inputShape)
 
   box_confidence, box_xy, box_wh, box_class_probs = _yolo_outputs(yolo_output)
@@ -147,12 +148,25 @@ def get_boxes(yolo_output,S,B,C,inputShape,score_threshold):
 
   # Scales the predicted boxes in order to be drawable on the image.
   # boxes = scale_boxes(boxes, image_shape)
-
+  boxes = kb.reshape(boxes,(-1,B,4))
+  boxes, scores, classes = prepare(boxes,scores,classes,B)
+  #kb.print_tensor('scores',scores.shape)
+  #kb.print_tensor('boxes',boxes.shape)
+  #kb.print_tensor('classes',classes.shape)
   # Perform Non-max suppression with a threshold of iou_threshold
   scores, boxes, classes = yolo_non_max_suppression(scores, boxes, classes, max_boxes = S[0]*S[1]*B, iou_threshold = 0.1)
   return scores, boxes, classes
 
+def prepare(boxes,scores,classes,B):
+  rboxes = boxes[:,0,:]
+  rscores = scores
+  rclasses = classes
+  for b in range(B-1):
+    rboxes = kb.concatenate(( kb.reshape(rboxes,(-1,4)), kb.reshape(boxes[:,b+1,:],(-1,4))), axis=0)
+    rscores = kb.concatenate((rscores,scores), axis=0)
+    rclasses = kb.concatenate((rclasses,classes), axis=0)
 
+  return rboxes, rscores, rclasses
 
 
 
@@ -348,9 +362,9 @@ class TensorBoardImage(keras.callbacks.Callback):
         image = images[index]
         normimage = image.copy()
 
-        y_pred = self.model.predict(K.reshape(image,(-1,self.imageShape[0],self.imageShape[1],self.imageShape[2])))
-        scores, boxes, classes = get_boxes(y_pred,self.S,self.B,self.C,self.imageShape,0.5)
-        boxes = K.reshape(boxes, (1,-1,4))
+        y_pred = self.model.predict(kb.reshape(image,(-1,self.imageShape[0],self.imageShape[1],self.imageShape[2])))
+        scores, boxes, classes = get_boxes(y_pred,self.S,self.B,self.imageShape,0.5)
+        boxes = kb.reshape(boxes, (1,-1,4))
         colors = np.array([[1.0, 0.0, 0.0]])
         K.print_tensor(boxes.shape)
         #K.print_tensor(boxes[0,:,:])
@@ -358,9 +372,9 @@ class TensorBoardImage(keras.callbacks.Callback):
             myBnDBoxImage = tf.image.draw_bounding_boxes([image], boxes,colors=colors)
             #if not self.bTrueDrawed:
             if True:
-              y_val = K.reshape(y_val[index], (-1,self.S[0],self.S[1],5*self.B+self.C))
-              val_scores, val_boxes, val_classes = get_boxes(tf.cast(y_val, dtype='float'), self.S, self.B, self.C,self.imageShape, score_threshold = 0.5)
-              val_boxes = K.reshape(val_boxes, (1,-1,4))
+              y_val = kb.reshape(y_val[index], (-1,S[0],S[1],5*B+C))
+              val_scores, val_boxes, val_classes = get_boxes(tf.cast(y_val, dtype='float'), self.S, self.B, self.imageShape, 0.3)
+              val_boxes = kb.reshape(val_boxes, (1,-1,4))
               val_colors = np.array([[0.0, 1.0, 0.0]])
               myTrueBoxImage = tf.image.draw_bounding_boxes(myBnDBoxImage, val_boxes,colors=val_colors)
               #tf.summary.image(self.tag+str(count)+'_true', myTrueBoxImage, step=epoch)

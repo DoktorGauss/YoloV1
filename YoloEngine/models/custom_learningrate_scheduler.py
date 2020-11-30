@@ -48,12 +48,16 @@ class CustomLearningRateScheduler(keras.callbacks.Callback):
 LR_SCHEDULE = [
     # (epoch to start, learning rate) tuples
     # (0, 0.0001),
-    # (1, 0.00001),
+    # #(1, 0.00001),
     # (20,   0.000001),
     # (40,  0.0000005), #30
     # (70,  0.0000001),
     # (100,  0.00000005),
     # (120,  0.00000001),
+    # (epoch to start, learning rate) tuples
+    # (0, 0.01),
+    # (75, 0.001),
+    # (105, 0.0001),
     (0,  0.00013),
     (1,  0.00011),
     (3,  0.00010),

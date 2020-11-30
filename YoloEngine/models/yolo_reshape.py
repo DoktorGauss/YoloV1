@@ -3,7 +3,7 @@ import tensorflow.keras.backend as kb
 
 
 class Yolo_Reshape(tf.keras.layers.Layer):
-  def __init__(self, target_shape, B=1, C=4):
+  def __init__(self, target_shape, B=2, C=4):
     super(Yolo_Reshape, self).__init__()
     self.target_shape = tuple(target_shape)
     self.B = B

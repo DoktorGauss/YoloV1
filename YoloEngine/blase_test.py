@@ -40,8 +40,8 @@ else:
     print("No GPU found")
 
 yolo_input = (448, 448, 3) 
-S = (25,25)
-B = 2
+S = (50,50)
+B = 3
 C = 1
 batch_size = 1
 classes = ['Blase']
@@ -77,43 +77,43 @@ X_valid, Y_valid = createXYFromDataset(data_set)
 
 
 
-# my_training_batch_generator = My_Custom_Generator(X_train, Y_train, batch_size,S,B,C,False,ANCHORS)
-# my_validation_batch_generator = My_Custom_Generator(X_valid, Y_valid, batch_size,S,B,C,True,ANCHORS)
+my_training_batch_generator = My_Custom_Generator(X_train, Y_train, batch_size,S,B,C,False,ANCHORS)
+my_validation_batch_generator = My_Custom_Generator(X_valid, Y_valid, batch_size,S,B,C,True,ANCHORS)
 
 
-# model =  blasen_model(name, yolo_shape=yolo_input, S=S, B=B, C=C )
-# model.compile(
-#     loss=my_yolo_loss(1.0,0.5,1.0,5.0,S,B,C,yolo_input,batch_size),
-#     optimizer=AdaBeliefOptimizer()
-#     )
-# model.build(input_shape=(batch_size,yolo_input[0], yolo_input[1], yolo_input[2]))
-# model.summary()
+model =  blasen_model(name, yolo_shape=yolo_input, S=S, B=B, C=C )
+model.compile(
+    loss=yolo_loss(1.0,0.5,1.0,5.0,S,B,C,yolo_input,batch_size),
+    optimizer=AdaBeliefOptimizer()
+    )
+model.build(input_shape=(batch_size,yolo_input[0], yolo_input[1], yolo_input[2]))
+model.summary()
 
 
-# i = 0
+i = 0
 
-# # X_train = X_train[:10]
-# model.fit(x=my_training_batch_generator,
-#           steps_per_epoch = int(len(X_train) // batch_size),
-#           epochs = 10,
-#           verbose = 1,
-#           shuffle = True,
-#           workers= 4,
-#           validation_data = my_validation_batch_generator,
-#           validation_steps = int(len(X_valid) // batch_size),
-#            callbacks=[
-#             #  CustomLearningRateScheduler(lr_schedule),
-#             #   mcp_save,
-#               #tensorboard_callback
-#           ])
+# X_train = X_train[:10]
+model.fit(x=my_training_batch_generator,
+          steps_per_epoch = int(len(X_train) // batch_size),
+          epochs = 10,
+          verbose = 1,
+          shuffle = True,
+          workers= 4,
+          validation_data = my_validation_batch_generator,
+          validation_steps = int(len(X_valid) // batch_size),
+           callbacks=[
+            #  CustomLearningRateScheduler(lr_schedule),
+            #   mcp_save,
+              #tensorboard_callback
+          ])
 # print('training finished')
 
-# for valid in X_valid:
-#     image, y = my_validation_batch_generator.__getitem__(i)
-#     y_strich = model.predict(image)
-#     bbox =  yolo_net_out_to_car_boxes(y_strich[0], threshold = 0.17,C=C, B=2, S=S)
-#     image = draw_box(bbox,image[0])
-#     #image = postprocessing(y_strich,  valid,0.3, 0.5, yolo_input[0], yolo_input[1],classes,S,B,C,ANCHORS)
-#     plt.imshow(image)
-#     plt.show()
-#     i += 1
+for valid in X_valid:
+    image, y = my_validation_batch_generator.__getitem__(i)
+    y_strich = model.predict(image)
+    bbox =  yolo_net_out_to_car_boxes(y_strich[0], threshold = 0.17,C=C, B=2, S=S)
+    image = draw_box(bbox,image[0])
+    #image = postprocessing(y_strich,  valid,0.3, 0.5, yolo_input[0], yolo_input[1],classes,S,B,C,ANCHORS)
+    plt.imshow(image)
+    plt.show()
+    i += 1
