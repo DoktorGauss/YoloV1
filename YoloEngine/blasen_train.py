@@ -29,7 +29,7 @@ checkpointPath="./data/model/blasen_698_448_50_50_20201119-095001.hdf5"
 name='blasen_'+ str(yolo_input[0]) + '_' + str(yolo_input[1]) + '_'+ str(S[0]) + '_' + str(S[1]) + '_' + datetime.now().strftime("%Y%m%d-%H%M%S")
 logdir = "logs/scalars/" + 'blasen' + datetime.now().strftime("%Y%m%d-%H%M%S")
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=1,profile_batch=5, write_graph=True, write_images=True,update_freq='batch')
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir, histogram_freq=1,profile_batch=5, embeddings_freq=1,  write_graph=True, write_images=True,update_freq='batch')
 mcp_save = ModelCheckpoint(data_path_save_model + '/model/' + name +'.hdf5', save_best_only=True,save_weights_only=False, monitor='loss', mode='min')
 
 
