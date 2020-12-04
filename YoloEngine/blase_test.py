@@ -33,11 +33,11 @@ from adabelief_tf import AdaBeliefOptimizer
 
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-if tf.test.gpu_device_name():
-    print('GPU found')
-else:
-    print("No GPU found")
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+# if tf.test.gpu_device_name():
+#     print('GPU found')
+# else:
+#     print("No GPU found")
 
 yolo_input = (448, 448, 3) 
 S = (50,50)

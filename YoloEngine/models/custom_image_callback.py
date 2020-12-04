@@ -135,7 +135,7 @@ def yolo_boxes_to_corners(box_xy, box_wh):
         box_maxes[..., 0:1]  # x_max
     ])
 
-def get_boxes(yolo_output,S,B,inputShape,score_threshold):
+def get_boxes(yolo_output,S,B,C,inputShape,score_threshold):
   _yolo_outputs = yolo_outputs(S,B,C,inputShape)
 
   box_confidence, box_xy, box_wh, box_class_probs = _yolo_outputs(yolo_output)
@@ -363,7 +363,7 @@ class TensorBoardImage(keras.callbacks.Callback):
         normimage = image.copy()
 
         y_pred = self.model.predict(kb.reshape(image,(-1,self.imageShape[0],self.imageShape[1],self.imageShape[2])))
-        scores, boxes, classes = get_boxes(y_pred,self.S,self.B,self.imageShape,0.5)
+        scores, boxes, classes = get_boxes(y_pred,self.S,self.B,self.C,self.imageShape,0.5)
         boxes = kb.reshape(boxes, (1,-1,4))
         colors = np.array([[1.0, 0.0, 0.0]])
         K.print_tensor(boxes.shape)
@@ -372,8 +372,8 @@ class TensorBoardImage(keras.callbacks.Callback):
             myBnDBoxImage = tf.image.draw_bounding_boxes([image], boxes,colors=colors)
             #if not self.bTrueDrawed:
             if True:
-              y_val = kb.reshape(y_val[index], (-1,S[0],S[1],5*B+C))
-              val_scores, val_boxes, val_classes = get_boxes(tf.cast(y_val, dtype='float'), self.S, self.B, self.imageShape, 0.3)
+              y_val = kb.reshape(y_val[index], (-1, self.S[0],self.S[1],5*self.B+self.C))
+              val_scores, val_boxes, val_classes = get_boxes(tf.cast(y_val, dtype='float'), self.S, self.B,self.C, self.imageShape, 0.3)
               val_boxes = kb.reshape(val_boxes, (1,-1,4))
               val_colors = np.array([[0.0, 1.0, 0.0]])
               myTrueBoxImage = tf.image.draw_bounding_boxes(myBnDBoxImage, val_boxes,colors=val_colors)

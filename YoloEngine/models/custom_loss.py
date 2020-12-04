@@ -63,9 +63,9 @@ def my_yolo_loss_tf(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4):
     def loss(y_true, y_pred):
 
         label_class = y_true[..., :C]  # ? * S0 * S1 * C
-        response_mask = y_true[..., C+4]  # ? * S0 * S1 
+        response_mask = y_true[..., C+B*4]  # ? * S0 * S1 
         response_mask = kb.expand_dims(response_mask)  # ? * S0 * S1 * 1
-        label_box = y_true[..., C: C+B*4]  # ? * S0 * S1 * 4
+        label_box = y_true[..., C: C+4]  # ? * S0 * S1 * 4
 
         predict_class = y_pred[..., :C]  # ? * 7 * 7 * 20
         predict_trust = y_pred[..., C+B*4:]  # ? * 7 * 7 * 2
@@ -82,12 +82,8 @@ def my_yolo_loss_tf(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4):
         predict_xy, predict_wh = yolo_head(_predict_box)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
         predict_xy = kb.expand_dims(predict_xy, 4)  # ? * 7 * 7 * 2 * 1 * 2
         predict_wh = kb.expand_dims(predict_wh, 4)  # ? * 7 * 7 * 2 * 1 * 2
-        #kb.print_tensor('predict_xy', predict_xy.shape)
-        #kb.print_tensor('predict_wh', predict_wh.shape)
 
         predict_xy_min, predict_xy_max = xywh2minmax(predict_xy, predict_wh)  # ? * 7 * 7 * 2 * 1 * 2, ? * 7 * 7 * 2 * 1 * 2
-        #kb.print_tensor('predict_xy_min', predict_xy_min.shape)
-        #kb.print_tensor('predict_xy_max', predict_xy_max.shape)
 
 
         iou_scores = iou(predict_xy_min, predict_xy_max, label_xy_min, label_xy_max)  # ? * 7 * 7 * 2 * 1
@@ -96,83 +92,40 @@ def my_yolo_loss_tf(lambda_c = 5, lambda_no=.5, S=(50,1), B=1, C=4):
 
         box_mask = kb.cast(best_ious >= best_box, kb.dtype(best_ious))  # ? * 7 * 7 * 2
 
-        #kb.print_tensor('box_mask', box_mask.shape)
-        #kb.print_tensor('response_mask', response_mask.shape)
-        #kb.print_tensor('predict_trust', predict_trust.shape)
 
         no_object_loss = 0.1 * (1 - box_mask * response_mask) * kb.square(0 - predict_trust)
-        #kb.print_tensor('no_object_loss', no_object_loss.shape)
 
         object_loss = 50 * box_mask * response_mask * kb.square(1 - predict_trust)
-        #kb.print_tensor('object_loss', object_loss.shape)
 
         no_object_loss = kb.sum(no_object_loss)
-        #kb.print_tensor('no_object_loss', no_object_loss)
 
         object_loss = kb.sum(object_loss)
-        #kb.print_tensor('object_loss', object_loss)
 
         class_loss = response_mask * kb.square(label_class - predict_class)
-        #kb.print_tensor('class_loss', class_loss.shape)
 
         class_loss = kb.sum(class_loss)
 
         _label_box = kb.reshape(label_box, [-1, S[0], S[1], 1, 4])
         _predict_box = kb.reshape(predict_box, [-1, S[0], S[1], B, 4])
-        #kb.print_tensor('_predict_box', _predict_box.shape)
-        # kb.print_tensor('_predict_box', _predict_box.shape)
         
         label_xy, label_wh = yolo_head(_label_box)  # ? * 7 * 7 * 1 * 2, ? * 7 * 7 * 1 * 2
         predict_xy, predict_wh = yolo_head(_predict_box)  # ? * 7 * 7 * 2 * 2, ? * 7 * 7 * 2 * 2
-        # kb.print_tensor('label_xy', label_xy.shape)
-        # kb.print_tensor('label_wh', label_wh.shape)
-        # kb.print_tensor('predict_xy', predict_xy.shape)
-        # kb.print_tensor('predict_wh', predict_wh.shape)
 
         box_mask = kb.expand_dims(box_mask)
         response_mask = kb.expand_dims(response_mask)
-        # kb.print_tensor('box_mask', box_mask.shape)
-        # kb.print_tensor('response_mask', response_mask.shape)
 
-        # label_x = label_xy[...,:1]
-        # label_y = label_xy[...,1:2] 
-        # label_xy = kb.concatenate([label_x, label_y])
-        # kb.print_tensor('response_mask', response_mask)
-
-        
-        # predict_x = predict_xy[...,:1]
-        # predict_y = predict_xy[...,1:2] 
-        # predict_xy = kb.concatenate([predict_x, predict_y])
-        # kb.print_tensor('response_mask', response_mask)
-
-        # label_w = label_wh[...,:1]
-        # label_h = label_wh[...,1:2]
-        # label_wh = kb.concatenate([label_w, label_h])
-        # kb.print_tensor('response_mask', response_mask)
-
-        # predict_w = predict_wh[...,:1]
-        # predict_h = predict_wh[...,1:2] 
-        # predict_wh = kb.concatenate([predict_w, predict_h])
-        # kb.print_tensor('response_mask', response_mask)
-
-        # kb.print_tensor('box_mask', box_mask.shape)
-        # kb.print_tensor('response_mask', response_mask.shape)
-        # kb.print_tensor('label_xy', label_xy.shape)
-        # kb.print_tensor('predict_xy', predict_xy.shape)
-        # kb.print_tensor('label_wh', label_wh.shape)
-        # kb.print_tensor('predict_wh', predict_wh.shape)
 
         box_loss_xy = lambda_c * box_mask * response_mask * kb.square(label_xy - predict_xy)
         box_loss_wh = lambda_c * box_mask * response_mask * kb.square((kb.sqrt(label_wh) - kb.sqrt(predict_wh)))
         box_loss_xy = kb.sum(box_loss_xy)
         box_loss_wh = kb.sum(box_loss_wh)
-        # kb.print_tensor('box_loss_xy', box_loss_xy)
-        # kb.print_tensor('box_loss_wh', box_loss_wh)
 
         loss = (no_object_loss + object_loss + class_loss + box_loss_xy + box_loss_wh)
-        # kb.print_tensor('loss', loss)
-
-
+        kb.print_tensor('no_object_loss',no_object_loss)
+        kb.print_tensor('object_loss',object_loss)
+        kb.print_tensor('class_loss',class_loss)
+        kb.print_tensor('box_loss_xy',box_loss_xy)
+        kb.print_tensor('box_loss_wh',box_loss_wh)
         tf.summary.scalar('no_object_loss', no_object_loss)
         tf.summary.scalar('object_loss', object_loss)
         tf.summary.scalar('class_loss', class_loss)

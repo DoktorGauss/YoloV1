@@ -20,11 +20,11 @@ from PIL import Image
 
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-if tf.test.gpu_device_name():
-    print('GPU found')
-else:
-    print("No GPU found")
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+# if tf.test.gpu_device_name():
+#     print('GPU found')
+# else:
+#     print("No GPU found")
 
 yolo_input = (1024, 768, 3) 
 

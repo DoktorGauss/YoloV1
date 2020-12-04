@@ -20,11 +20,11 @@ from Postprocess.yolo_v1_output_to_bndbox import yolo_v1_draw_calculation
 
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-if tf.test.gpu_device_name():
-    print('GPU found')
-else:
-    print("No GPU found")
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+# if tf.test.gpu_device_name():
+#     print('GPU found')
+# else:
+#     print("No GPU found")
 
 yolo_input = (1024, 768, 3) 
 S = (50,50)

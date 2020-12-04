@@ -16,11 +16,11 @@ import matplotlib.text as text
 # for gpu in gpus:
 #   tf.config.experimental.set_memory_growth(gpu, True)
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-if tf.test.gpu_device_name():
-    print('GPU found')
-else:
-    print("No GPU found")
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+# if tf.test.gpu_device_name():
+#     print('GPU found')
+# else:
+#     print("No GPU found")
 
 yolo_input = (448, 448, 3) 
 S = (100,100)

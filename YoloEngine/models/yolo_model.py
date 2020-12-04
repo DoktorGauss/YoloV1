@@ -1,24 +1,8 @@
 import tensorflow as tf
-import numpy as np
-import xml.etree.ElementTree as ET
-import os
-from enum import Enum
-from operator import itemgetter
-from keras.optimizers import Adam
-import tensorflow.keras.backend as kb
-from PIL import Image
-from numpy import asarray
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import matplotlib.text as text
-from tensorflow.keras.layers import Conv2D, BatchNormalization, LeakyReLU
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, InputLayer, Dropout, Flatten, Reshape
-from tensorflow.keras.layers import MaxPooling2D, GlobalMaxPooling2D
+from tensorflow.keras.layers import Conv2D
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.layers import MaxPooling2D
 from tensorflow.keras.regularizers import l2
-from tensorflow.keras.callbacks import ModelCheckpoint
-from datetime import datetime
-
 from tensorflow.python.keras.backend import dtype
 from models.yolo_reshape import Yolo_Reshape
 from tensorflow.keras import initializers

@@ -3,11 +3,11 @@ import tensorflow as tf
 import os
 from custom_loss import yolo_loss
 from loss_tensorflow import my_yolo_loss_tf
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-if tf.test.gpu_device_name():
-    print('GPU found')
-else:
-    print("No GPU found")
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+# if tf.test.gpu_device_name():
+#     print('GPU found')
+# else:
+#     print("No GPU found")
 
 from my_yolo_loss import *
 
